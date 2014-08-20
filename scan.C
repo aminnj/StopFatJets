@@ -167,9 +167,11 @@ void scan(float jetPtCut=40.0, TString tag = "") {
             vector<int> WpDaughterIdxs, WmDaughterIdxs;
             for(unsigned int iPart = 0; iPart < genps_id().size(); iPart++) {
 
+                if(genps_status().at(iPart) != 3) continue; // only look at status=3
+
                 // same requirements on quarks as jets
                 if (genps_p4().at(iPart).pt() < jetPtCut) continue;
-                if (fabs(genps_p4().at(iPart).eta()) > 2.4) continue;
+                if (fabs(genps_p4().at(iPart).eta()) > 2.5) continue;
 
                 if(genps_id_mother().at(iPart) == 24) WpDaughterIdxs.push_back(iPart);
                 else if(genps_id_mother().at(iPart) == -24) WmDaughterIdxs.push_back(iPart);
@@ -177,11 +179,11 @@ void scan(float jetPtCut=40.0, TString tag = "") {
             }
 
             if(WpDaughterIdxs.size() == 2) {
-                if(genps_id().at( WpDaughterIdxs[0] ) < 7 && genps_id().at( WpDaughterIdxs[1] ) < 7) 
+                if( abs(genps_id().at( WpDaughterIdxs[0] )) < 7 && abs(genps_id().at( WpDaughterIdxs[1] )) < 7) 
                     WtoqqIdxs.push_back( std::make_pair(WpDaughterIdxs[0], WpDaughterIdxs[1]) );
             }
             if(WmDaughterIdxs.size() == 2) {
-                if(genps_id().at( WmDaughterIdxs[0] ) < 7 && genps_id().at( WmDaughterIdxs[1] ) < 7) 
+                if(abs(genps_id().at( WmDaughterIdxs[0] )) < 7 && abs(genps_id().at( WmDaughterIdxs[1] )) < 7) 
                     WtoqqIdxs.push_back( std::make_pair(WmDaughterIdxs[0], WmDaughterIdxs[1]) );
             }
 
@@ -193,7 +195,7 @@ void scan(float jetPtCut=40.0, TString tag = "") {
             std::vector<JetStruct> goodJets;
             for (unsigned int iJet = 0; iJet < pfjets_p4().size(); iJet++){
                 if (pfjets_p4().at(iJet).pt()*pfjets_corL1FastL2L3().at(iJet) < jetPtCut) continue;
-                if (fabs(pfjets_p4().at(iJet).eta()) > 2.4) continue;
+                if (fabs(pfjets_p4().at(iJet).eta()) > 2.5) continue;
                 // if (!passesLoosePFJetID(iJet)) continue;
 
 
@@ -388,10 +390,10 @@ void scan(float jetPtCut=40.0, TString tag = "") {
     drawStacked(dog, h1D_lonelyjet_vec,prefix+"h1D_lonelyjet.pdf",""+common);
 
     h1D_lonelyjet->Divide(h1D_nonlonelyjet);
-    drawStacked(dog, h1D_lonelyjet_vec,prefix+"h1D_lonelyjetfraction.pdf","--title lonely jet ratio (1 jet/2 jets)"+common);
+    drawStacked(dog, h1D_lonelyjet_vec,prefix+"h1D_lonelyjetfraction.pdf","--title lonely jet ratio (=1 jet/2 jets) (mindR, but no dR cut yet)"+common);
 
     h1D_stop_mass_lt2match->Divide(h1D_stop_mass);
-    drawStacked(dog, h1D_stop_mass_lt2match_vec,prefix+"h1D_jetmatchfraction.pdf","--title ratio of evts with <2 matched jets to 2 matched jets"+common);
+    drawStacked(dog, h1D_stop_mass_lt2match_vec,prefix+"h1D_jetmatchfraction.pdf","--title ratio of evts with <2 matched jets to 2 matched jets (after dR cut)"+common);
 
     drawStacked(dog, h1D_dRqq_vec,prefix+"h1D_dRqq.pdf","--centerlabel --nostack --title dR between qq --titles if 1 common mindR jet|if 2 distinct jets"+common);
     drawStacked(dog, h1D_dRqq200_vec,prefix+"h1D_dRqq200.pdf","--centerlabel --nostack --title dR between qq (stop 200) --titles if 1 common mindR jet|if 2 distinct jets"+common);
@@ -399,7 +401,7 @@ void scan(float jetPtCut=40.0, TString tag = "") {
     drawStacked(dog, h1D_dRqq900_vec,prefix+"h1D_dRqq900.pdf","--centerlabel --nostack --title dR between qq (stop 900) --titles if 1 common mindR jet|if 2 distinct jets"+common);
 
     drawStacked(dog, h1D_dRjj_masses_vec,prefix+"h1D_dRjj_masses.pdf","--keeporder --centerlabel --nostack --title dR between jj matched to qq"+massTitles+common);
-    drawStacked(dog, h1D_dRqq_nomatch_vec,prefix+"h1D_dRqq_nomatch.pdf","--keeporder --centerlabel --nostack --title dR between qq (no matching at this point)"+massTitles+common);
+    drawStacked(dog, h1D_dRqq_nomatch_vec,prefix+"h1D_dRqq_nomatch.pdf","--keeporder --centerlabel --nostack --title dR between qq (no matching at this point) --nofill "+massTitles+common);
     drawStacked(dog, h1D_leadjmass_masses_vec,prefix+"h1D_leadjmass_masses.pdf","--keeporder --centerlabel --nostack --title inv mass of leading j (of jj matched to qq) --nofill --normalize "+massTitles+common);
 
     drawStacked(dog, h1D_mindR_vec,prefix+"h1D_mindR.pdf","--centerlabel --title min #DeltaR between q-j "+common);

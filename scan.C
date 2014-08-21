@@ -24,7 +24,7 @@ struct JetStruct {
     unsigned int idx;
 };
 
-void scan(float jetPtCut=40.0, TString tag = "") {
+void scan(float jetPtCut=40.0, TString tag = "", bool requireLeptonic = false) {
 
     TChain *ch = new TChain("Events");
 
@@ -59,8 +59,16 @@ void scan(float jetPtCut=40.0, TString tag = "") {
 
 
     vector<TH1F*> h1D_njets_vec;
-    TH1F* h1D_njets_reco = new TH1F("", ";;Entries", 15, 0, 15); h1D_njets_vec.push_back(h1D_njets_reco);
-    TH1F* h1D_njets_gen = new TH1F("", ";;Entries", 15, 0, 15); h1D_njets_vec.push_back(h1D_njets_gen);
+    // TH1F* h1D_njets_reco = new TH1F("", ";;Entries", 15, 0, 15); h1D_njets_vec.push_back(h1D_njets_reco);
+    // TH1F* h1D_njets_gen = new TH1F("", ";;Entries", 15, 0, 15); h1D_njets_vec.push_back(h1D_njets_gen);
+    TH1F* h1D_njets_gen200 = new TH1F("", ";;Entries", 15, 0,15); h1D_njets_vec.push_back(h1D_njets_gen200);
+    TH1F* h1D_njets_gen300 = new TH1F("", ";;Entries", 15, 0,15); h1D_njets_vec.push_back(h1D_njets_gen300);
+    TH1F* h1D_njets_gen400 = new TH1F("", ";;Entries", 15, 0,15); h1D_njets_vec.push_back(h1D_njets_gen400);
+    TH1F* h1D_njets_gen500 = new TH1F("", ";;Entries", 15, 0,15); h1D_njets_vec.push_back(h1D_njets_gen500);
+    TH1F* h1D_njets_gen600 = new TH1F("", ";;Entries", 15, 0,15); h1D_njets_vec.push_back(h1D_njets_gen600);
+    TH1F* h1D_njets_gen700 = new TH1F("", ";;Entries", 15, 0,15); h1D_njets_vec.push_back(h1D_njets_gen700);
+    TH1F* h1D_njets_gen800 = new TH1F("", ";;Entries", 15, 0,15); h1D_njets_vec.push_back(h1D_njets_gen800);
+    TH1F* h1D_njets_gen900 = new TH1F("", ";;Entries", 15, 0,15); h1D_njets_vec.push_back(h1D_njets_gen900);
 
     vector<TH1F*> h1D_mindR_vec;
     TH1F* h1D_mindR = new TH1F("", "min #DeltaR between reco jet and quark;;Entries", 100, 0.0, 2.0); h1D_mindR_vec.push_back(h1D_mindR);
@@ -178,21 +186,38 @@ void scan(float jetPtCut=40.0, TString tag = "") {
                 else continue;
             }
 
+
+            int nLeptonicDecay = 0;
             if(WpDaughterIdxs.size() == 2) {
-                if( abs(genps_id().at( WpDaughterIdxs[0] )) < 7 && abs(genps_id().at( WpDaughterIdxs[1] )) < 7) 
+                if(abs(genps_id().at( WpDaughterIdxs[0] )) < 7 && abs(genps_id().at( WpDaughterIdxs[1] )) < 7) 
                     WtoqqIdxs.push_back( std::make_pair(WpDaughterIdxs[0], WpDaughterIdxs[1]) );
+                else if(genps_id().at( WpDaughterIdxs[0] ) * genps_id().at( WpDaughterIdxs[1] ) < 0) {  // opposite signs for pdg ids
+                    if( abs( abs(genps_id().at( WpDaughterIdxs[0] )) - abs(genps_id().at( WpDaughterIdxs[1] )) ) == 1 )  // lep + nu are same flavor
+                        nLeptonicDecay++;
+                }
             }
             if(WmDaughterIdxs.size() == 2) {
                 if(abs(genps_id().at( WmDaughterIdxs[0] )) < 7 && abs(genps_id().at( WmDaughterIdxs[1] )) < 7) 
                     WtoqqIdxs.push_back( std::make_pair(WmDaughterIdxs[0], WmDaughterIdxs[1]) );
+                else if(genps_id().at( WmDaughterIdxs[0] ) * genps_id().at( WmDaughterIdxs[1] ) < 0) {  // opposite signs for pdg ids
+                    if( abs( abs(genps_id().at( WmDaughterIdxs[0] )) - abs(genps_id().at( WmDaughterIdxs[1] )) ) == 1 )  // lep + nu are same flavor
+                        nLeptonicDecay++;
+                }
             }
 
-            if(WtoqqIdxs.size() < 1) continue; // we don't even have 1 W->qq :(
-            addToCounter("at least 1 Wtoqq");
+            if(requireLeptonic) {
+                // want 1 W to go hadronically and 1 leptonically
+                if(WtoqqIdxs.size() != 1) continue;
+                if(nLeptonicDecay != 1) continue;
+            } else {
+
+                if(WtoqqIdxs.size() < 1) continue; // we don't even have 1 W->qq :(
+            }
 
             fill(h1D_stop_mass_all, stopMass);
 
             std::vector<JetStruct> goodJets;
+            std::vector<JetStruct> goodGenJets;
             for (unsigned int iJet = 0; iJet < pfjets_p4().size(); iJet++){
                 if (pfjets_p4().at(iJet).pt()*pfjets_corL1FastL2L3().at(iJet) < jetPtCut) continue;
                 if (fabs(pfjets_p4().at(iJet).eta()) > 2.5) continue;
@@ -220,6 +245,17 @@ void scan(float jetPtCut=40.0, TString tag = "") {
                 myJet.idx = iJet;
 
                 goodJets.push_back(myJet);
+            }
+            for (unsigned int iJet = 0; iJet < genjets_p4().size(); iJet++) {
+                if (genjets_p4().at(iJet).pt() < jetPtCut) continue;
+                if (fabs(genjets_p4().at(iJet).eta()) > 2.5) continue;
+
+                JetStruct myJet = {*(new LorentzVector()), 0.0, 999};
+                myJet.jet = pfjets_p4().at(iJet);
+                myJet.mindRToQuark = 9999;
+                myJet.idx = iJet;
+
+                goodGenJets.push_back(myJet);
             }
 
 
@@ -299,10 +335,10 @@ void scan(float jetPtCut=40.0, TString tag = "") {
                 int j2idx = qqMatchedJets[iPair].second;
 
                 int nMatchedJets = 0;
-                // if(goodJets[j1idx].mindRToQuark > 0.1) continue;
-                // if(goodJets[j2idx].mindRToQuark > 0.1) continue;
-                if(goodJets[j1idx].mindRToQuark < 0.1) nMatchedJets++;
-                if(goodJets[j2idx].mindRToQuark < 0.1) nMatchedJets++;
+                // if(goodJets[j1idx].mindRToQuark > 0.2) continue;
+                // if(goodJets[j2idx].mindRToQuark > 0.2) continue;
+                if(goodJets[j1idx].mindRToQuark < 0.2) nMatchedJets++;
+                if(goodJets[j2idx].mindRToQuark < 0.2) nMatchedJets++;
 
                 if(nMatchedJets < 2) {
                     fill(h1D_stop_mass_lt2match, stopMass);
@@ -319,27 +355,35 @@ void scan(float jetPtCut=40.0, TString tag = "") {
                 if(        stopMass == 200 ) {
                     fill(h1D_dRjj200, dRjj);
                     fill(h1D_leadjmass200, leadingJetInvMass);
+                    fill(h1D_njets_gen200, goodGenJets.size());
                 } else if( stopMass == 300 ) {
                     fill(h1D_dRjj300, dRjj);
                     fill(h1D_leadjmass300, leadingJetInvMass);
+                    fill(h1D_njets_gen300, goodGenJets.size());
                 } else if( stopMass == 400 ) {
                     fill(h1D_dRjj400, dRjj);
                     fill(h1D_leadjmass400, leadingJetInvMass);
+                    fill(h1D_njets_gen400, goodGenJets.size());
                 } else if( stopMass == 500 ) {
                     fill(h1D_dRjj500, dRjj);
                     fill(h1D_leadjmass500, leadingJetInvMass);
+                    fill(h1D_njets_gen500, goodGenJets.size());
                 } else if( stopMass == 600 ) {
                     fill(h1D_dRjj600, dRjj);
                     fill(h1D_leadjmass600, leadingJetInvMass);
+                    fill(h1D_njets_gen600, goodGenJets.size());
                 } else if( stopMass == 700 ) {
                     fill(h1D_dRjj700, dRjj);
                     fill(h1D_leadjmass700, leadingJetInvMass);
+                    fill(h1D_njets_gen700, goodGenJets.size());
                 } else if( stopMass == 800 ) {
                     fill(h1D_dRjj800, dRjj);
                     fill(h1D_leadjmass800, leadingJetInvMass);
+                    fill(h1D_njets_gen800, goodGenJets.size());
                 } else if( stopMass == 900 ) {
                     fill(h1D_dRjj900, dRjj);
                     fill(h1D_leadjmass900, leadingJetInvMass);
+                    fill(h1D_njets_gen900, goodGenJets.size());
                 }
 
                 fill(h1D_stop_mass, stopMass);
@@ -347,8 +391,8 @@ void scan(float jetPtCut=40.0, TString tag = "") {
 
             CMS2::progress( nEventsSoFar, nEventsTotal );
 
-            fill(h1D_njets_gen, genjets_p4().size());
-            fill(h1D_njets_reco, goodJets.size());
+            // fill(h1D_njets_gen, genjets_p4().size());
+            // fill(h1D_njets_reco, goodJets.size());
 
 
             addToCounter("good events");
@@ -383,7 +427,7 @@ void scan(float jetPtCut=40.0, TString tag = "") {
 
 
 
-    drawStacked(dog, h1D_njets_vec,prefix+"h1D_njets.pdf","--nostack --title Njets --titles reco|gen"+common);
+    drawStacked(dog, h1D_njets_vec,prefix+"h1D_njets.pdf","--keeporder --nostack --title Ngenjets --nofill --normalize --label normalized "+massTitles+common);
     drawStacked(dog, h1D_stop_mass_vec,prefix+"h1D_stop_mass.pdf",""+common);
     drawStacked(dog, h1D_stop_mass_lt2match_vec,prefix+"h1D_stop_mass_lt2match.pdf",""+common);
     drawStacked(dog, h1D_stop_mass_all_vec,prefix+"h1D_stop_mass_all.pdf",""+common);
@@ -400,11 +444,11 @@ void scan(float jetPtCut=40.0, TString tag = "") {
     drawStacked(dog, h1D_dRqq500_vec,prefix+"h1D_dRqq500.pdf","--centerlabel --nostack --title dR between qq (stop 500) --titles if 1 common mindR jet|if 2 distinct jets"+common);
     drawStacked(dog, h1D_dRqq900_vec,prefix+"h1D_dRqq900.pdf","--centerlabel --nostack --title dR between qq (stop 900) --titles if 1 common mindR jet|if 2 distinct jets"+common);
 
-    drawStacked(dog, h1D_dRjj_masses_vec,prefix+"h1D_dRjj_masses.pdf","--keeporder --centerlabel --nostack --title dR between jj matched to qq"+massTitles+common);
+    drawStacked(dog, h1D_dRjj_masses_vec,prefix+"h1D_dRjj_masses.pdf","--keeporder --centerlabel --nostack --title dR between jj matched to qq --nofill "+massTitles+common);
     drawStacked(dog, h1D_dRqq_nomatch_vec,prefix+"h1D_dRqq_nomatch.pdf","--keeporder --centerlabel --nostack --title dR between qq (no matching at this point) --nofill "+massTitles+common);
     drawStacked(dog, h1D_leadjmass_masses_vec,prefix+"h1D_leadjmass_masses.pdf","--keeporder --centerlabel --nostack --title inv mass of leading j (of jj matched to qq) --nofill --normalize "+massTitles+common);
 
-    drawStacked(dog, h1D_mindR_vec,prefix+"h1D_mindR.pdf","--centerlabel --title min #DeltaR between q-j "+common);
+    drawStacked(dog, h1D_mindR_vec,prefix+"h1D_mindR.pdf","--centerlabel --title min #DeltaR between q-j --normalize --label normalized "+common);
 
     vector<vector<float> > xvals;
     vector<vector<float> > yvals_jj, yvals_qq;
@@ -417,16 +461,18 @@ void scan(float jetPtCut=40.0, TString tag = "") {
     thresholds.push_back(0.9); kTitles += "k = 0.9|";
     thresholds.push_back(1.0); kTitles += "k = 1.0|";
 
+    vector<float> masses;
+    masses.push_back(200); 
+    masses.push_back(300); 
+    masses.push_back(400); 
+    masses.push_back(500); 
+    masses.push_back(600); 
+    masses.push_back(700); 
+    masses.push_back(800); 
+    masses.push_back(900); 
+
     for(unsigned int i = 0; i < thresholds.size(); i++) {
-        vector<float> masses, fatfractions, qqfractions;
-        masses.push_back(200); 
-        masses.push_back(300); 
-        masses.push_back(400); 
-        masses.push_back(500); 
-        masses.push_back(600); 
-        masses.push_back(700); 
-        masses.push_back(800); 
-        masses.push_back(900); 
+        vector<float> fatfractions, qqfractions;
 
         fatfractions.push_back( getFractionBetween(h1D_dRjj200, 0.0, thresholds.at(i)) );
         fatfractions.push_back( getFractionBetween(h1D_dRjj300, 0.0, thresholds.at(i)) );
@@ -452,9 +498,28 @@ void scan(float jetPtCut=40.0, TString tag = "") {
     }
 
 
-    drawGraph(xvals, yvals_jj, prefix+"g1D_fatfraction.pdf", "--title Fraction of jj with #DeltaR_{jj}<k --xlabel m_{#tilde{t}}-m_{LSP} --ylabel fat fraction --legendposition bottom"+kTitles);
-    drawGraph(xvals, yvals_qq, prefix+"g1D_qqfraction.pdf", "--title Fraction of qq (no match) with #DeltaR_{jj}<k --xlabel m_{#tilde{t}}-m_{LSP} --ylabel fraction --legendposition bottom"+kTitles);
+    drawGraph(xvals, yvals_jj, prefix+"g1D_fatfraction.pdf", "--title Fraction of jj with #DeltaR_{jj}<k --xlabel m_{#tilde{t}}-m_{LSP} --ylabel fat fraction --legendposition bottom "+kTitles+common);
+    drawGraph(xvals, yvals_qq, prefix+"g1D_qqfraction.pdf", "--title Fraction of qq (no match) with #DeltaR_{jj}<k --xlabel m_{#tilde{t}}-m_{LSP} --ylabel fraction --legendposition bottom "+kTitles+common);
 
+    vector<vector<float> > xval_masses;
+    vector<vector<float> > yval_jets;
+    for(int njets = 3; njets < 5; njets++) {
+        vector<float> jetfractions;
+
+        jetfractions.push_back( getFractionBetween(h1D_njets_gen200, njets, 100) );
+        jetfractions.push_back( getFractionBetween(h1D_njets_gen300, njets, 100) );
+        jetfractions.push_back( getFractionBetween(h1D_njets_gen400, njets, 100) );
+        jetfractions.push_back( getFractionBetween(h1D_njets_gen500, njets, 100) );
+        jetfractions.push_back( getFractionBetween(h1D_njets_gen600, njets, 100) );
+        jetfractions.push_back( getFractionBetween(h1D_njets_gen700, njets, 100) );
+        jetfractions.push_back( getFractionBetween(h1D_njets_gen800, njets, 100) );
+        jetfractions.push_back( getFractionBetween(h1D_njets_gen900, njets, 100) );
+
+        yval_jets.push_back(jetfractions); 
+        xval_masses.push_back(masses); 
+    }
+
+    drawGraph(xval_masses, yval_jets, prefix+"g1D_jetfraction.pdf", "--title Fraction of ngenjets #geq k --xlabel m_{#tilde{t}}-m_{LSP} --ylabel fraction --legendposition bottom --titles k=3|k=4 "+common);
 
     // return 0;
 }
